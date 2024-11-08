@@ -60,13 +60,13 @@ func TestCharacter_IsValid(t *testing.T) {
 
 func TestCharacter_TakeDamage(t *testing.T) {
 	character := Character{
-		ID:        1,
-		Name:      "Primal Shifter",
-		Health:    100,
-		Attack:    15,
-		Defense:   10,
-		Speed:     7,
-		Abilities: []Ability{},
+		Name:          "Primal Shifter",
+		Abilities:     []Ability{},
+		StatusEffects: []StatusEffectData{},
+		Health:        100,
+		Attack:        15,
+		Defense:       10,
+		Speed:         7,
 	}
 
 	// Test basic damage calculation

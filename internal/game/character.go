@@ -2,14 +2,14 @@ package game
 
 // Character represents a playable character in the battle card game
 type Character struct {
-	Name         string
-	Abilities    []Ability
-	StatusEffect []StatusEffectData
-	ID           int
-	Health       int
-	Attack       int
-	Defense      int
-	Speed        int
+	Name          string
+	Abilities     []Ability
+	StatusEffects []StatusEffectData
+	ID            int
+	Health        int
+	Attack        int
+	Defense       int
+	Speed         int
 }
 
 // IsValid will check if the character has valid stats
@@ -33,19 +33,40 @@ func (c *Character) TakeDamage(damage int) {
 }
 
 // Will allow character to use ability on a target
-func (c *Character) UseAbility(abilityIndex int, targer *Character) AbilityResult {
+func (c *Character) UseAbility(abilityIndex int, target *Character) AbilityResult {
 	// Make sure the index is within the bounds of the []Abilities
-
+	if abilityIndex >= len(c.Abilities) {
+		return AbilityResult{
+			Success: false,
+			Message: "Invalid ability index.",
+		}
+	}
 	// Check if ability can be used
-
-	// Apply the damage
-
+	ability := &c.Abilities[abilityIndex]
+	if !ability.CanUse() {
+		return AbilityResult{
+			Success: false,
+			Message: "Ability on cooldown",
+		}
+	}
+	// Apply the damag
 	// Apply status effect
+	damage := ability.Damage
+	target.TakeDamage(damage)
+
+	if ability.StatusEffect.Type != "" {
+		target.StatusEffects = append(target.StatusEffects, ability.StatusEffect)
+	}
 
 	// Call ability.Use() to set cooldown
-
+	ability.Use()
 	// Return result: Information about what happened.
-	return AbilityResult{}
+	return AbilityResult{
+		Success:      true,
+		Damage:       damage,
+		StatusEffect: &ability.StatusEffect,
+		Message:      "Ability used successfully",
+	}
 }
 
 // Process status effect - handle all active status effects.
