@@ -82,11 +82,13 @@ func TestCharacter_UseAbility(t *testing.T) {
 	}
 }
 
-// Testing status effect processing
+// TODO: Test_GetEffectScalingValue
+
+// TODO: Testing status effect processing
 func Test_ProcessStatusEffect(t *testing.T) {
 	target := Character{
 		Name:    "Mage",
-		Health:  10,
+		Health:  100,
 		Attack:  10,
 		Defense: 10,
 		Speed:   10,
@@ -102,9 +104,9 @@ func Test_ProcessStatusEffect(t *testing.T) {
 			statusEffectData: StatusEffectData{
 				Type:     StatusAccelerate,
 				Duration: 3,
-				Potency:  10,
+				Potency:  10, // Potency determines what the value is for the stat change.
 			},
-			expected: []int{13, 16, 20},
+			expected: []int{13, 16, 20}, // Buff needs to be a positive int
 		},
 		{
 			name: "Burning status applied - 3X",
@@ -113,12 +115,12 @@ func Test_ProcessStatusEffect(t *testing.T) {
 				Duration: 3,
 				Potency:  10,
 			},
-			expected: []int{13, 16, 20},
+			expected: []int{13, 16, 20}, // Damage needs to be negative int
 		},
 		{
 			name: "Poison status applied - 3X",
 			statusEffectData: StatusEffectData{
-				Type:     StatusPoisoned,
+				Type:     StatusPoisoned, // Curse is negative
 				Duration: 3,
 				Potency:  10,
 			},
@@ -136,9 +138,9 @@ func Test_ProcessStatusEffect(t *testing.T) {
 		{
 			name: "Recovering status applied - 3X",
 			statusEffectData: StatusEffectData{
-				Type:     StatusRecovering,
+				Type:     StatusRegenerating,
 				Duration: 3,
-				Potency:  10,
+				Potency:  10, // Healing needs to be positive
 			},
 			expected: []int{13, 16, 20},
 		},

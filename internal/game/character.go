@@ -1,5 +1,10 @@
 package game
 
+import (
+	"fmt"
+	"math"
+)
+
 // Character represents a playable character in the battle card game
 type Character struct {
 	Name          string
@@ -70,3 +75,32 @@ func (c *Character) UseAbility(abilityIndex int, target *Character) AbilityResul
 }
 
 // Process status effect - handle all active status effects.
+// loop over each effect in the StatusEffectData slice
+// switch fof each type of StatusEffect
+//
+
+// Get Effect Value
+func (c *Character) GetEffectScalingValue(statName string, scalar int, potency int, divisor int) int {
+	// Get base stat value based on statName
+	var baseStat int
+	switch statName {
+	case "health":
+		baseStat = c.Health
+	case "attack":
+		baseStat = c.Attack
+	case "defense":
+		baseStat = c.Defense
+	case "speed":
+		baseStat = c.Speed
+	default:
+		fmt.Printf("Warning: unknown stat %s\n", statName)
+		return 0
+	}
+	// Calculate stat modification
+	modifiedStat := baseStat + (baseStat * potency / scalar)
+	// Round down and apply divisor
+	newStat := int(modifiedStat / divisor)
+
+	fmt.Printf("newStat: %f\n", newStat)
+	return newStat
+}
