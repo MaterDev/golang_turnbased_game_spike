@@ -13,7 +13,7 @@ const (
 
 // EVery effect will hold various attributes
 type StatusEffectData struct {
-	Type     StatusEffect
-	Duration int // Number of remaining turns
-	Potency  int // The strength of the effect
+	Type     StatusEffect `json:"Type"`
+	Duration int         `json:"Duration"` // Number of remaining turns
+	Potency  int         `json:"Potency"`  // The strength of the effect
 }

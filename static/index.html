@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Turn-Based Battle</title>
+    <script src="https://unpkg.com/htmx.org@1.9.6"></script>
+    <script>
+        htmx.logAll(); // Enable HTMX debug logging
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .battle-container {
+            display: flex;
+            justify-content: space-between;
+            margin: 20px 0;
+        }
+        .character {
+            border: 1px solid #ccc;
+            padding: 20px;
+            width: 45%;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+        }
+        .stats {
+            margin: 10px 0;
+        }
+        .actions {
+            margin-top: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+        .ability-buttons {
+            display: flex;
+            gap: 10px;
+        }
+        button {
+            padding: 8px 16px;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.2s;
+        }
+        button.basic-attack {
+            background-color: #4CAF50;
+        }
+        button.special-attack {
+            background-color: #9C27B0;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        select {
+            padding: 8px;
+            margin-right: 10px;
+            width: 200px;
+        }
+        .battle-log {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+        .status-effects {
+            margin-top: 10px;
+            font-style: italic;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <h1>Turn-Based Battle</h1>
+    
+    <div id="setup-form">
+        <h2>Create New Battle</h2>
+        <div class="battle-container">
+            <div class="character">
+                <h3>Character 1</h3>
+                <input type="text" id="char1-name" placeholder="Name" value="Warrior">
+                <div class="stats">
+                    Health: <input type="number" id="char1-health" value="100"><br>
+                    Attack: <input type="number" id="char1-attack" value="15"><br>
+                    Defense: <input type="number" id="char1-defense" value="10"><br>
+                    Speed: <input type="number" id="char1-speed" value="8">
+                </div>
+            </div>
+            <div class="character">
+                <h3>Character 2</h3>
+                <input type="text" id="char2-name" placeholder="Name" value="Mage">
+                <div class="stats">
+                    Health: <input type="number" id="char2-health" value="80"><br>
+                    Attack: <input type="number" id="char2-attack" value="20"><br>
+                    Defense: <input type="number" id="char2-defense" value="5"><br>
+                    Speed: <input type="number" id="char2-speed" value="12">
+                </div>
+            </div>
+        </div>
+        <button onclick="createBattle()">Create Battle</button>
+    </div>
+
+    <div id="game-container"></div>
+
+    <script>
+        let currentBattle = null;
+
+        function createBattle() {
+            // Prevent creating multiple battles
+            if (currentBattle !== null) {
+                logMessage("A battle is already in progress!");
+                return;
+            }
+
+            const char1 = {
+                name: document.getElementById('char1-name').value,
+                health: parseInt(document.getElementById('char1-health').value),
+                attack: parseInt(document.getElementById('char1-attack').value),
+                defense: parseInt(document.getElementById('char1-defense').value),
+                speed: parseInt(document.getElementById('char1-speed').value),
+                abilities: [
+                    {
+                        name: "Basic Attack",
+                        damage: 10,
+                        cooldownMax: 0
+                    },
+                    {
+                        name: "Power Strike",
+                        damage: 20,
+                        cooldownMax: 2,
+                        statusEffect: {
+                            type: "ENRAGED",
+                            duration: 2,
+                            potency: 20
+                        }
+                    }
+                ]
+            };
+
+            const char2 = {
+                name: document.getElementById('char2-name').value,
+                health: parseInt(document.getElementById('char2-health').value),
+                attack: parseInt(document.getElementById('char2-attack').value),
+                defense: parseInt(document.getElementById('char2-defense').value),
+                speed: parseInt(document.getElementById('char2-speed').value),
+                abilities: [
+                    {
+                        name: "Basic Attack",
+                        damage: 8,
+                        cooldownMax: 0
+                    },
+                    {
+                        name: "Fireball",
+                        damage: 15,
+                        cooldownMax: 2,
+                        statusEffect: {
+                            type: "BURNING",
+                            duration: 3,
+                            potency: 5
+                        }
+                    }
+                ]
+            };
+
+            fetch('/battles', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    Character1: char1,
+                    Character2: char2
+                }),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    logMessage(`Error: ${data.error}`);
+                    return;
+                }
+                currentBattle = data;
+                document.getElementById('setup-form').style.display = 'none';
+                renderBattleView();
+                startBattle();
+            })
+            .catch(error => {
+                logMessage(`Error: ${error.message}`);
+            });
+        }
+
+        function startBattle() {
+            fetch(`/battles/${currentBattle.ID}/start`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({}),
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.error) {
+                    logMessage(`Error: ${data.error}`);
+                    return;
+                }
+                currentBattle = data;
+                updateBattleView();
+                logMessage("Battle started!");
+            })
+            .catch(error => {
+                logMessage(`Error: ${error.message}`);
+            });
+        }
+
+        function renderBattleView() {
+            const container = document.getElementById('game-container');
+            container.innerHTML = `
+                <div id="battle-view">
+                    <div class="battle-container">
+                        <div class="character" id="char1">
+                            <h2 id="char1-title"></h2>
+                            <div id="char1-stats" class="stats"></div>
+                            <div class="status-effects" id="char1-status"></div>
+                            <div class="actions">
+                                <select id="char1-target" name="char1-target">
+                                    <option value="enemy">Target Enemy</option>
+                                    <option value="self">Target Self</option>
+                                </select>
+                                <div class="ability-buttons">
+                                    <button class="basic-attack"
+                                            hx-post="/battles/${currentBattle.ID}/action"
+                                            hx-trigger="click"
+                                            hx-include="[name='char1-target']"
+                                            hx-vals='{"CharacterID":"${currentBattle.Character1.ID}","AbilityIndex":0}'
+                                            hx-target="#battle-view"
+                                            hx-swap="outerHTML">
+                                        Basic Attack
+                                    </button>
+                                    <button class="special-attack"
+                                            hx-post="/battles/${currentBattle.ID}/action"
+                                            hx-trigger="click"
+                                            hx-include="[name='char1-target']"
+                                            hx-vals='{"CharacterID":"${currentBattle.Character1.ID}","AbilityIndex":1}'
+                                            hx-target="#battle-view"
+                                            hx-swap="outerHTML">
+                                        Power Strike
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="character" id="char2">
+                            <h2 id="char2-title"></h2>
+                            <div id="char2-stats" class="stats"></div>
+                            <div class="status-effects" id="char2-status"></div>
+                            <div class="actions">
+                                <select id="char2-target" name="char2-target">
+                                    <option value="enemy">Target Enemy</option>
+                                    <option value="self">Target Self</option>
+                                </select>
+                                <div class="ability-buttons">
+                                    <button class="basic-attack"
+                                            hx-post="/battles/${currentBattle.ID}/action"
+                                            hx-trigger="click"
+                                            hx-include="[name='char2-target']"
+                                            hx-vals='{"CharacterID":"${currentBattle.Character2.ID}","AbilityIndex":0}'
+                                            hx-target="#battle-view"
+                                            hx-swap="outerHTML">
+                                        Basic Attack
+                                    </button>
+                                    <button class="special-attack"
+                                            hx-post="/battles/${currentBattle.ID}/action"
+                                            hx-trigger="click"
+                                            hx-include="[name='char2-target']"
+                                            hx-vals='{"CharacterID":"${currentBattle.Character2.ID}","AbilityIndex":1}'
+                                            hx-target="#battle-view"
+                                            hx-swap="outerHTML">
+                                        Fireball
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="battle-log" id="battle-log"></div>
+                </div>`;
+            updateBattleView();
+        }
+
+        function updateBattleView() {
+            // Update character 1
+            document.getElementById('char1-title').textContent = currentBattle.Character1.Name;
+            document.getElementById('char1-stats').innerHTML = `
+                Health: ${currentBattle.Character1.Health}<br>
+                Attack: ${currentBattle.Character1.Attack}<br>
+                Defense: ${currentBattle.Character1.Defense}<br>
+                Speed: ${currentBattle.Character1.Speed}
+            `;
+
+            // Update character 2
+            document.getElementById('char2-title').textContent = currentBattle.Character2.Name;
+            document.getElementById('char2-stats').innerHTML = `
+                Health: ${currentBattle.Character2.Health}<br>
+                Attack: ${currentBattle.Character2.Attack}<br>
+                Defense: ${currentBattle.Character2.Defense}<br>
+                Speed: ${currentBattle.Character2.Speed}
+            `;
+
+            // Update status effects
+            document.getElementById('char1-status').textContent = 
+                currentBattle.Character1.StatusEffects?.length > 0 
+                    ? `Status Effects: ${currentBattle.Character1.StatusEffects.map(e => e.Type).join(', ')}` 
+                    : '';
+            
+            document.getElementById('char2-status').textContent = 
+                currentBattle.Character2.StatusEffects?.length > 0 
+                    ? `Status Effects: ${currentBattle.Character2.StatusEffects.map(e => e.Type).join(', ')}` 
+                    : '';
+
+            // Disable buttons if battle is complete
+            const buttons = document.querySelectorAll('button');
+            buttons.forEach(button => {
+                button.disabled = currentBattle.State === "COMPLETE";
+            });
+        }
+
+        function logMessage(message) {
+            const log = document.getElementById('battle-log');
+            if (log) {
+                const entry = document.createElement('div');
+                entry.textContent = message;
+                log.appendChild(entry);
+                log.scrollTop = log.scrollHeight;
+            }
+        }
+    </script>
+</body>
+</html>

@@ -2,19 +2,18 @@ package game
 
 import (
 	"fmt"
-	"math"
 )
 
 // Character represents a playable character in the battle card game
 type Character struct {
-	Name          string
-	Abilities     []Ability
-	StatusEffects []StatusEffectData
-	ID            int
-	Health        int
-	Attack        int
-	Defense       int
-	Speed         int
+	ID            string           `json:"ID"`
+	Name          string           `json:"Name"`
+	Abilities     []Ability        `json:"Abilities"`
+	StatusEffects []StatusEffectData `json:"StatusEffects"`
+	Health        int              `json:"Health"`
+	Attack        int              `json:"Attack"`
+	Defense       int              `json:"Defense"`
+	Speed         int              `json:"Speed"`
 }
 
 // IsValid will check if the character has valid stats
@@ -54,23 +53,27 @@ func (c *Character) UseAbility(abilityIndex int, target *Character) AbilityResul
 			Message: "Ability on cooldown",
 		}
 	}
-	// Apply the damag
-	// Apply status effect
-	damage := ability.Damage
+
+	// Calculate total damage based on ability damage and character's Attack stat
+	damage := ability.Damage + c.Attack
+
+	// Apply the damage to target
 	target.TakeDamage(damage)
 
+	// Apply status effect if present
 	if ability.StatusEffect.Type != "" {
 		target.StatusEffects = append(target.StatusEffects, ability.StatusEffect)
 	}
 
 	// Call ability.Use() to set cooldown
 	ability.Use()
-	// Return result: Information about what happened.
+
+	// Return result with information about what happened
 	return AbilityResult{
 		Success:      true,
 		Damage:       damage,
 		StatusEffect: &ability.StatusEffect,
-		Message:      "Ability used successfully",
+		Message:      fmt.Sprintf("Ability used successfully for %d damage", damage),
 	}
 }
 
@@ -78,6 +81,54 @@ func (c *Character) UseAbility(abilityIndex int, target *Character) AbilityResul
 // loop over each effect in the StatusEffectData slice
 // switch fof each type of StatusEffect
 //
+func (c *Character) ProcessStatusEffect() {
+	// Create a new slice to store active effects
+	activeEffects := make([]StatusEffectData, 0)
+
+	// Process each status effect
+	for _, effect := range c.StatusEffects {
+		if effect.Duration <= 0 {
+			continue
+		}
+
+		// Process effect based on type
+		switch effect.Type {
+		case StatusAccelerate:
+			// Increase speed based on potency
+			speedIncrease := c.GetEffectScalingValue("speed", 100, effect.Potency, 1)
+			c.Speed = speedIncrease
+
+		case StatusBurning:
+			// Increasing damage over time
+			burnDamage := c.GetEffectScalingValue("health", 100, effect.Potency*effect.Duration, 10)
+			c.TakeDamage(burnDamage)
+
+		case StatusPoisoned:
+			// Decreasing damage over time
+			poisonDamage := c.GetEffectScalingValue("health", 100, effect.Potency, effect.Duration)
+			c.TakeDamage(poisonDamage)
+
+		case StatusEnraged:
+			// Increase attack based on potency
+			attackIncrease := c.GetEffectScalingValue("attack", 100, effect.Potency, 1)
+			c.Attack = attackIncrease
+
+		case StatusRegenerating:
+			// Heal based on potency
+			healAmount := c.GetEffectScalingValue("health", 100, effect.Potency, 10)
+			c.Health += healAmount
+		}
+
+		// Decrease duration and keep active effects
+		effect.Duration--
+		if effect.Duration > 0 {
+			activeEffects = append(activeEffects, effect)
+		}
+	}
+
+	// Update status effects list with only active effects
+	c.StatusEffects = activeEffects
+}
 
 // Get Effect Value
 func (c *Character) GetEffectScalingValue(statName string, scalar int, potency int, divisor int) int {
@@ -101,6 +152,6 @@ func (c *Character) GetEffectScalingValue(statName string, scalar int, potency i
 	// Round down and apply divisor
 	newStat := int(modifiedStat / divisor)
 
-	fmt.Printf("newStat: %f\n", newStat)
+	fmt.Printf("newStat: %d\n", newStat)
 	return newStat
 }

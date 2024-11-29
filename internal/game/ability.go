@@ -2,19 +2,19 @@ package game
 
 // Ability represents a unique move of a character. Characters can have multiple abilities.
 type Ability struct {
-	Name         string
-	StatusEffect StatusEffectData
-	Damage       int
-	CooldownMax  int
-	Cooldown     int
+	Name         string          `json:"Name"`
+	StatusEffect StatusEffectData `json:"StatusEffect"`
+	Damage       int             `json:"Damage"`
+	CooldownMax  int             `json:"CooldownMax"`
+	Cooldown     int             `json:"Cooldown"`
 }
 
 // AbilityResult contains the result of using an ability
 type AbilityResult struct {
-	Success      bool
-	Damage       int
-	StatusEffect *StatusEffectData
-	Message      string
+	Success      bool             `json:"Success"`
+	Damage       int              `json:"Damage"`
+	StatusEffect *StatusEffectData `json:"StatusEffect,omitempty"`
+	Message      string           `json:"Message"`
 }
 
 func (a *Ability) CanUse() bool {
